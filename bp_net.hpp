@@ -110,17 +110,40 @@ namespace cnn_net {
 			output_layer_.init(hidden_neurons[hidden_neurons.size() - 1], output_count);
 		}
 
-		void propagate(const double *input) {
-			//todo
+		void update(int layer_index) {
+			if (layer_index == -1) {
+				for (size_t i = 0; i < input_layer_.neurons.size(); i++)
+				{
+					hidden_layers_[0].input(i) = input_layer_.neurons[i].output;
+				}
+			}
+			else {
+				for (size_t i = 0; i < hidden_layers_[layer_index].neurons.size(); i++)
+				{
+					if ((size_t)layer_index < hidden_layers_.size() - 1) {
+						hidden_layers_[layer_index + 1].input(i) = hidden_layers_[layer_index].neurons[i].output;
+					}
+					else {
+						output_layer_.input(i) = hidden_layers_[layer_index].neurons[i].output;
+					}
+				}
+			}
+		}
+
+		void forward(const double *input) {
+			input_layer_.calculate();
+			update(-1);
+
+			for (size_t i = 0; i < hidden_layers_.size(); i++)
+			{
+				hidden_layers_[i].calculate();
+				update(i);
+			}
 		}
 
 		double train(const double *desired_output, const double *input, double alpha, double momentum) {
 			//todo
 			return 0;
-		}
-
-		void update(int layer_index) {
-			//todo
 		}
 
 		layer &get_output_layer()

@@ -13,7 +13,7 @@ namespace cnn_net {
 			delete[] data_;
 		}
 
-		matrix(const matrix& m) {
+		matrix(const matrix& m) : rows_(m.rows_), cols_(m.cols_) {
 			copy(m);
 		}
 
@@ -22,7 +22,13 @@ namespace cnn_net {
 				return *this;
 			}
 
-			delete[] data_;
+			if (rows_ != m.rows_ || cols_ != m.cols_) {
+				delete[] data_;
+				rows_ = m.rows_;
+				cols_ = m.cols_;
+				assert(rows_ != 0 && cols_ != 0);
+				data_ = new double[rows_ * cols_]();
+			}
 			copy(m);
 
 			return *this;
@@ -34,9 +40,11 @@ namespace cnn_net {
 			}
 
 			delete[] data_;
+
 			data_ = m.data_;
 			rows_ = m.rows_;
 			cols_ = m.cols_;
+			m.reset();
 
 			return *this;
 		}
@@ -87,15 +95,21 @@ namespace cnn_net {
 			return cols_;
 		}
 
+		size_t size() const {
+			return rows_ * cols_;
+		}
+
+		void reset() {
+			data_ = nullptr;
+			rows_ = 0;
+			cols_ = 0;
+		}
+
 	private:
 		void copy(const matrix& m) {
 			for (size_t i = 0; i < rows_*cols_; ++i) {
 				data_[i] = m.data_[i];
 			}
-		}
-
-		size_t size() const {
-			return rows_ * cols_;
 		}
 
 	private:

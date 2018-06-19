@@ -93,11 +93,13 @@ namespace cnn_net {
 		void init(size_t input_count, size_t input_neurons, size_t output_count, std::vector<size_t> hidden_neurons) {
 			assert(input_count && input_neurons && output_count && !hidden_neurons.empty());
 
+			hidden_layer_count_ = hidden_neurons.size();
+
 			//init input layer
 			input_layer_.init(input_count, input_neurons);
 
 			//init hidden layers
-			for (size_t i = 0; i < hidden_neurons.size(); i++){
+			for (size_t i = 0; i < hidden_layer_count_; i++){
 				if(i==0){
 					hidden_layers_[i] = { input_count, hidden_neurons[0] };
 				}
@@ -107,7 +109,7 @@ namespace cnn_net {
 			}
 
 			//init output layer
-			output_layer_.init(hidden_neurons[hidden_neurons.size() - 1], output_count);
+			output_layer_.init(hidden_neurons[hidden_layer_count_ - 1], output_count);
 		}
 
 		void update(int layer_index) {
@@ -142,8 +144,61 @@ namespace cnn_net {
 		}
 
 		double train(const double *desired_output, const double *input, double alpha, double momentum) {
-			//todo
+			double quadratic = 0;
+
 			return 0;
+		}
+
+		void output_layer_error(const float *desired_output) {
+			for (size_t i = 0; i < output_layer_.neurons.size(); i++) {
+				double output = output_layer_.neurons[i].output;
+				double result = output * (1 - output) * (desired_output[i] - output);
+				output_layer_delta_[i] = result;
+				output_layer_.neurons[i].deltas(i) = result;
+
+				total_error_ += (desired_output[i] - output) * (desired_output[i] - output);
+
+				for (size_t j = 0; j < output_layer_.input.size(); j++)
+				{
+					output_sum_ += output_layer_.neurons[i].weights(j)*result; //for next layer
+				}
+			}
+
+			total_error_ /= 2; //平方差
+		}
+
+		void hidden_layer_error() {
+			for (size_t i = hidden_layer_count_ - 1; i >= 0; i--) {
+				for (size_t j = 0; j < hidden_layers_[i].neurons.size(); j++)
+				{
+					double output = hidden_layers_[i].neurons[j].output;
+					
+					double result = output * (1 - output) * output_sum_;
+					hidden_layer_delta_[i] = result;
+					hidden_layers_[i].neurons[j].deltas(j) = result;
+				}
+			}
+		}
+
+		void backward() {
+			//更新输出层权值和偏置
+
+			//更新隐藏层权值和偏置
+		}
+
+		void update_weight(double learning_rate) {
+			for (size_t i = 0; i < output_layer_.neurons.size(); i++) {
+				for (size_t j = 0; j < output_layer_.input.size(); j++)
+				{
+					double delta = learning_rate * output_layer_delta_[j] * output_layer_.input(j);
+					output_layer_.neurons[i].weights(j) += delta;
+					output_layer_.neurons[i].deltas(j) = delta;
+				}
+			}
+		}
+
+		void update_bias() {
+
 		}
 
 		layer &get_output_layer()
@@ -155,5 +210,13 @@ namespace cnn_net {
 		layer input_layer_;
 		layer output_layer_;
 		std::vector<layer> hidden_layers_;
+		size_t hidden_layer_count_;
+
+		//中间变量
+		std::vector<double> output_layer_delta_;
+		double output_sum_ = 0;
+		std::vector<double> hidden_layer_delta_;
+
+		double total_error_ = 0;
 	};
 }
